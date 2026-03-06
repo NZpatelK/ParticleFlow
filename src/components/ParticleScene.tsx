@@ -5,7 +5,15 @@ import { useParticles } from "./useParticles";
 
 export default function ParticleScene() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const { morphToText } = useParticles(containerRef);
+    const { morphToText } = useParticles(containerRef,
+        {
+            hueBase: 0.8,   // blue area in HSL
+            hueRange: 0.05,
+            saturation: 0.7,
+            lightnessBase: 0.45,
+            lightnessRange: 0.25,
+        }
+    );
     const [inputValue, setInputValue] = useState("");
 
     const handleSubmit = () => {
@@ -36,7 +44,7 @@ export default function ParticleScene() {
                     />
                     <button
                         onClick={handleSubmit}
-                        className="flex items-center gap-2 bg-red-500 bg-linear-to-br from-indigo-500 to-indigo-600 border-none px-6 py-3 text-white rounded-xl font-semibold cursor-pointer transition-all duration-300 hover:-translate-y-px hover:shadow-[0_4px_20px_-2px_rgba(79,70,229,0.5)] active:translate-y-px"
+                        className="flex items-center gap-2 bg-linear-to-br from-indigo-500 to-indigo-600 border-none px-6 py-3 text-white rounded-xl font-semibold cursor-pointer transition-all duration-300 hover:-translate-y-px hover:shadow-[0_4px_20px_-2px_rgba(79,70,229,0.5)] active:translate-y-px"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-transform duration-300 group-hover:translate-x-1">
                             <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
