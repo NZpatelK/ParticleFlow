@@ -39,7 +39,7 @@ function getResponsiveParticleSize(): number {
   if (w < 480) return 0.06;
   if (w < 768) return 0.07;
   if (w < 1280) return 0.075;
-  return 0.08;
+  return 0.10;
 }
 
 function getResponsiveCameraZ(): number {
@@ -47,14 +47,14 @@ function getResponsiveCameraZ(): number {
   if (w < 480) return 38;
   if (w < 768) return 32;
   if (w < 1280) return 28;
-  return 25;
+  return 22;
 }
 
 function getResponsiveSphereRadius(): number {
   const w = window.innerWidth;
   if (w < 480) return 6;
   if (w < 768) return 7;
-  return 8;
+  return 10;
 }
 
 function resolveColorConfig(cfg?: ParticleColorConfig): Required<ParticleColorConfig> {
@@ -126,7 +126,8 @@ export function useParticles(
     const canvas   = document.createElement("canvas");
     const ctx      = canvas.getContext("2d")!;
     const w        = window.innerWidth;
-    const fontSize = w < 480 ? 60 : w < 768 ? 80 : 100;
+    const fontSize = w < 480 ? 30 : w < 768 ? 60 : 50; // ← reduced from 60/80/100
+    const textSize = w < 480 ? 1 : w < 768 ? 2 : w < 1280 ? 4 : 5;
     const padding  = 20;
 
     ctx.font = `bold ${fontSize}px Arial`;
@@ -145,8 +146,8 @@ export function useParticles(
         const x = (i / 4) % canvas.width;
         const y = Math.floor(i / 4 / canvas.width);
         points.push({
-          x:  (x - canvas.width  / 2) / (fontSize / 10),
-          y: -(y - canvas.height / 2) / (fontSize / 10),
+          x:  (x - canvas.width  / 2) / (fontSize / textSize),
+          y: -(y - canvas.height / 2) / (fontSize / 5),
         });
       }
     }
