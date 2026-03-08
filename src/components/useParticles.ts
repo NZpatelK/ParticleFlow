@@ -365,7 +365,6 @@ export function useParticles(
       renderer.dispose();
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef]);
 
   return { morphToText };
