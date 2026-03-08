@@ -36,7 +36,7 @@ function extractConfig(arg?: UseParticlesArg): ParticleColorConfig | undefined {
 
 function getResponsiveParticleSize(): number {
   const w = window.innerWidth;
-  if (w < 480) return 0.06;
+  if (w < 480) return 0.07;
   if (w < 768) return 0.07;
   if (w < 1280) return 0.075;
   return 0.10;
@@ -44,7 +44,7 @@ function getResponsiveParticleSize(): number {
 
 function getResponsiveCameraZ(): number {
   const w = window.innerWidth;
-  if (w < 480) return 38;
+  if (w < 480) return 34;
   if (w < 768) return 32;
   if (w < 1280) return 28;
   return 22;
@@ -52,7 +52,7 @@ function getResponsiveCameraZ(): number {
 
 function getResponsiveSphereRadius(): number {
   const w = window.innerWidth;
-  if (w < 480) return 6;
+  if (w < 480) return 12;
   if (w < 768) return 7;
   return 10;
 }
@@ -100,10 +100,33 @@ export function useParticles(
   const cfg = extractConfig(colorArg);
   useEffect(() => {
     colorConfigRef.current = cfg;
-    if (currentStateRef.current === "sphere" && particlesRef.current) {
-      applySphereColors(particlesRef.current, resolveColorConfig(cfg));
+    if (particlesRef.current) {
+      // Apply color update regardless of state — so red looks red immediately
+      const resolved = resolveColorConfig(cfg);
+      if (currentStateRef.current === "sphere") {
+        applySphereColors(particlesRef.current, resolved);
+      } else {
+        // In text state: re-tint the visible (text) particles with the new hue
+        const particles = particlesRef.current;
+        const colArr = particles.geometry.attributes.color.array as Float32Array;
+        const posArr = particles.geometry.attributes.position.array as Float32Array;
+        for (let i = 0; i < COUNT; i++) {
+          const px = posArr[i * 3], py = posArr[i * 3 + 1], pz = posArr[i * 3 + 2];
+          // Only re-color particles that are near the text plane (z ≈ 0, not scattered)
+          const isTextParticle = Math.abs(pz) < 2 && (Math.abs(px) < 15 && Math.abs(py) < 8);
+          if (isTextParticle) {
+            const hue = (resolved.hueBase + (i / COUNT) * 0.08) % 1;
+            const c = new THREE.Color().setHSL(hue, 1.0, 0.55 + Math.random() * 0.05);
+            colArr[i * 3] = c.r; colArr[i * 3 + 1] = c.g; colArr[i * 3 + 2] = c.b;
+          } else {
+            // Scattered particles: match new hue but stay dark
+            const c = new THREE.Color().setHSL(resolved.hueBase, 0.6, 0.15);
+            colArr[i * 3] = c.r; colArr[i * 3 + 1] = c.g; colArr[i * 3 + 2] = c.b;
+          }
+        }
+        particles.geometry.attributes.color.needsUpdate = true;
+      }
     }
-  // Spread individual fields so React detects primitive changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cfg?.hueBase, cfg?.hueRange, cfg?.saturation, cfg?.lightnessBase, cfg?.lightnessRange]);
 
@@ -126,8 +149,8 @@ export function useParticles(
     const canvas   = document.createElement("canvas");
     const ctx      = canvas.getContext("2d")!;
     const w        = window.innerWidth;
-    const fontSize = w < 480 ? 30 : w < 768 ? 60 : 50; // ← reduced from 60/80/100
-    const textSize = w < 480 ? 1 : w < 768 ? 2 : w < 1280 ? 4 : 5;
+    const fontSize = w < 480 ? 80 : w < 768 ? 60 : 50;
+    const textSize = w < 480 ? 4 : w < 768 ? 2 : w < 1280 ? 4 : 5;
     const padding  = 20;
 
     ctx.font = `bold ${fontSize}px Arial`;
@@ -162,11 +185,12 @@ export function useParticles(
     currentStateRef.current = "sphere";
 
     const r   = getResponsiveSphereRadius();
+    // Read the CURRENT color config at the time of morphing
     const cfg = resolveColorConfig(colorConfigRef.current);
 
     const posArr          = particles.geometry.attributes.position.array as Float32Array;
     const targetPositions = new Float32Array(COUNT * 3);
-    const targetColors    = new Float32Array(COUNT * 3); // never mutate live array before tween
+    const targetColors    = new Float32Array(COUNT * 3);
 
     for (let i = 0; i < COUNT; i++) {
       const p = sphericalDistribution(i);
@@ -205,6 +229,7 @@ export function useParticles(
     if (!particles) return;
     currentStateRef.current = "text";
 
+    // Read the CURRENT color config at the time morphToText is called
     const cfg        = resolveColorConfig(colorConfigRef.current);
     const textPoints = createTextPoints(text);
     const posArr     = particles.geometry.attributes.position.array as Float32Array;
@@ -219,17 +244,22 @@ export function useParticles(
         targetPositions[i * 3]     = textPoints[i].x;
         targetPositions[i * 3 + 1] = textPoints[i].y;
         targetPositions[i * 3 + 2] = 0;
-        // Vivid hue sweep anchored to parent hueBase
-        const hue = (cfg.hueBase + (i / textPoints.length) * 0.15) % 1;
-        const c   = new THREE.Color().setHSL(hue, 1.0, 0.55 + Math.random() * 0.03);
+
+        // FIX: use a tight hue range (0.08) around the selected hueBase
+        // so the text stays recognisably the chosen colour (e.g. red stays red)
+        const hue = (cfg.hueBase + (i / textPoints.length) * 0.08) % 1;
+        const c   = new THREE.Color().setHSL(hue, 1.0, 0.55 + Math.random() * 0.05);
         targetColors[i * 3] = c.r; targetColors[i * 3 + 1] = c.g; targetColors[i * 3 + 2] = c.b;
       } else {
+        // Scattered / hidden particles — match the chosen hue but stay very dark
         const angle  = Math.random() * Math.PI * 2;
         const radius = Math.random() * 20 + 10;
         targetPositions[i * 3]     = Math.cos(angle) * radius;
         targetPositions[i * 3 + 1] = Math.sin(angle) * radius;
         targetPositions[i * 3 + 2] = (Math.random() - 0.5) * 10;
-        const c = new THREE.Color().setHSL(cfg.hueBase, 0.4, 0.12);
+
+        // FIX: was hardcoded hue 0.4 (green/teal); now uses cfg.hueBase
+        const c = new THREE.Color().setHSL(cfg.hueBase, 0.6, 0.12);
         targetColors[i * 3] = c.r; targetColors[i * 3 + 1] = c.g; targetColors[i * 3 + 2] = c.b;
       }
     }

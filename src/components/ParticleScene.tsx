@@ -5,50 +5,74 @@ import { useParticles } from "./useParticles";
 
 // ── Colour palette ──────────────────────────────────────────────────────────
 const COLORS = [
-  // Reds & Pinks
+  // Reds & Pinks (0–7)
   { label: "Crimson", hex: "#ef4444", from: "#ef4444", to: "#991b1b" },
+  { label: "Red", hex: "#dc2626", from: "#dc2626", to: "#7f1d1d" },
   { label: "Rose", hex: "#f43f5e", from: "#f43f5e", to: "#be123c" },
+  { label: "Ruby", hex: "#e11d48", from: "#e11d48", to: "#881337" },
   { label: "Pink", hex: "#ec4899", from: "#ec4899", to: "#9d174d" },
+  { label: "Hot Pink", hex: "#f472b6", from: "#f472b6", to: "#be185d" },
   { label: "Fuchsia", hex: "#d946ef", from: "#d946ef", to: "#86198f" },
+  { label: "Magenta", hex: "#c026d3", from: "#e879f9", to: "#86198f" },
 
-  // Purples
+  // Purples (8–15)
   { label: "Purple", hex: "#a855f7", from: "#a855f7", to: "#6b21a8" },
+  { label: "Grape", hex: "#9333ea", from: "#c084fc", to: "#581c87" },
   { label: "Violet", hex: "#8b5cf6", from: "#8b5cf6", to: "#5b21b6" },
+  { label: "Lavender", hex: "#a78bfa", from: "#c4b5fd", to: "#6d28d9" },
   { label: "Indigo", hex: "#6366f1", from: "#6366f1", to: "#3730a3" },
   { label: "Iris", hex: "#818cf8", from: "#818cf8", to: "#4338ca" },
+  { label: "Periwinkle", hex: "#7c3aed", from: "#a5b4fc", to: "#4338ca" },
+  { label: "Plum", hex: "#7e22ce", from: "#d8b4fe", to: "#4c1d95" },
 
-  // Blues
+  // Blues (16–23)
   { label: "Blue", hex: "#3b82f6", from: "#3b82f6", to: "#1e3a8a" },
+  { label: "Royal", hex: "#2563eb", from: "#60a5fa", to: "#1e3a8a" },
   { label: "Sky", hex: "#0ea5e9", from: "#0ea5e9", to: "#0c4a6e" },
+  { label: "Cerulean", hex: "#38bdf8", from: "#7dd3fc", to: "#0369a1" },
   { label: "Cyan", hex: "#06b6d4", from: "#06b6d4", to: "#164e63" },
+  { label: "Azure", hex: "#22d3ee", from: "#67e8f9", to: "#0e7490" },
   { label: "Teal", hex: "#14b8a6", from: "#14b8a6", to: "#134e4a" },
+  { label: "Ocean", hex: "#0891b2", from: "#2dd4bf", to: "#164e63" },
 
-  // Greens
+  // Greens (24–31)
   { label: "Emerald", hex: "#10b981", from: "#10b981", to: "#064e3b" },
+  { label: "Jade", hex: "#059669", from: "#34d399", to: "#065f46" },
   { label: "Green", hex: "#22c55e", from: "#22c55e", to: "#14532d" },
+  { label: "Forest", hex: "#16a34a", from: "#4ade80", to: "#14532d" },
   { label: "Lime", hex: "#84cc16", from: "#84cc16", to: "#365314" },
+  { label: "Chartreuse", hex: "#a3e635", from: "#d9f99d", to: "#4d7c0f" },
   { label: "Mint", hex: "#4ade80", from: "#4ade80", to: "#166534" },
+  { label: "Sage", hex: "#86efac", from: "#bbf7d0", to: "#15803d" },
 
-  // Yellows & Oranges
+  // Ambers (32–39)
   { label: "Yellow", hex: "#eab308", from: "#eab308", to: "#713f12" },
+  { label: "Lemon", hex: "#facc15", from: "#fef08a", to: "#a16207" },
   { label: "Amber", hex: "#f59e0b", from: "#f59e0b", to: "#78350f" },
+  { label: "Honey", hex: "#fcd34d", from: "#fde68a", to: "#b45309" },
   { label: "Orange", hex: "#f97316", from: "#f97316", to: "#7c2d12" },
-  { label: "Coral", hex: "#fb923c", from: "#fb923c", to: "#9a3412" },
+  { label: "Tangerine", hex: "#fb923c", from: "#fed7aa", to: "#c2410c" },
+  { label: "Coral", hex: "#f87171", from: "#fca5a5", to: "#b91c1c" },
+  { label: "Peach", hex: "#fdba74", from: "#ffedd5", to: "#ea580c" },
 
-  // Neutrals & Special
+  // Special (40–47)
   { label: "White", hex: "#f1f5f9", from: "#f1f5f9", to: "#94a3b8" },
   { label: "Silver", hex: "#94a3b8", from: "#94a3b8", to: "#334155" },
+  { label: "Slate", hex: "#64748b", from: "#cbd5e1", to: "#1e293b" },
+  { label: "Smoke", hex: "#9ca3af", from: "#e5e7eb", to: "#374151" },
   { label: "Gold", hex: "#fbbf24", from: "#fde68a", to: "#d97706" },
+  { label: "Bronze", hex: "#d97706", from: "#fcd34d", to: "#92400e" },
   { label: "Neon", hex: "#a3e635", from: "#a3e635", to: "#65a30d" },
+  { label: "Electric", hex: "#22d3ee", from: "#a5f3fc", to: "#0e7490" },
 ];
 
 const GROUPS = [
-  { name: "Reds & Pinks", range: [0, 4] },
-  { name: "Purples", range: [4, 8] },
-  { name: "Blues", range: [8, 12] },
-  { name: "Greens", range: [12, 16] },
-  { name: "Ambers", range: [16, 20] },
-  { name: "Special", range: [20, 24] },
+  { name: "Reds & Pinks", range: [0, 8] },
+  { name: "Purples", range: [8, 16] },
+  { name: "Blues", range: [16, 24] },
+  { name: "Greens", range: [24, 32] },
+  { name: "Ambers", range: [32, 40] },
+  { name: "Special", range: [40, 48] },
 ];
 
 // ── hex → HSL ───────────────────────────────────────────────────────────────
@@ -76,7 +100,7 @@ export default function ParticleScene() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const [selected, setSelected] = useState(COLORS[5]); // Violet default
+  const [selected, setSelected] = useState(COLORS[10]); // Violet default
   const [pickerOpen, setPickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
 
