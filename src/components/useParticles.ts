@@ -88,7 +88,7 @@ function applySphereColors(particles: THREE.Points, cfg: Required<ParticleColorC
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useParticles(
-  containerRef: React.RefObject<HTMLDivElement>,
+  containerRef: React.RefObject<HTMLDivElement | null>,
   colorArg?: UseParticlesArg
 ) {
   const particlesRef    = useRef<THREE.Points | null>(null);
