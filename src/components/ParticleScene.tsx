@@ -96,7 +96,7 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function ParticleScene() {
+export default function ParticleScene({ inputVisible = true }: { inputVisible?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +139,15 @@ export default function ParticleScene() {
     <>
       <div ref={containerRef} className="fixed inset-0 w-full h-full" id="container" />
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-xl" ref={pickerRef}>
+      <div
+        className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-xl
+    transition-all duration-800 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+    ${inputVisible
+            ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+            : "opacity-0 translate-y-8 scale-95 pointer-events-none"
+          }`}
+        ref={pickerRef}
+      >
 
         {/* ── Picker popover ── */}
         <div className={`absolute bottom-full mb-3 left-0 right-0 transition-all duration-300 ${pickerOpen

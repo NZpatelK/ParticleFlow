@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen bg-black overflow-hidden">
       <WelcomeModal onGetStarted={() => setShowWelcome(false)} />
-      <ParticleScene />
+      <ParticleScene inputVisible={!showWelcome} />
     </main>
   );
 }

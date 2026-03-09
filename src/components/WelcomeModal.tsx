@@ -254,10 +254,10 @@ export default function WelcomeModal({ onGetStarted }: WelcomeModalProps) {
             }}
           >
             {/* Shimmer sweep */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
 
             <span className="relative flex items-center justify-center gap-2">
-              Let's get started
+              Let&apos;s get started
               <svg
                 width="16"
                 height="16"
