@@ -222,6 +222,57 @@ export function useParticles(
     }
   }, [sphericalDistribution]);
 
+  // ── morphToTextStatic (no auto-return, for slideshow use) ─────────────────
+
+  const morphToTextStatic = useCallback((text: string) => {
+    const particles = particlesRef.current;
+    if (!particles) return;
+    currentStateRef.current = "text";
+
+    const cfg        = resolveColorConfig(colorConfigRef.current);
+    const textPoints = createTextPoints(text);
+    const posArr     = particles.geometry.attributes.position.array as Float32Array;
+    const colArr     = particles.geometry.attributes.color.array as Float32Array;
+    const targetPositions = new Float32Array(COUNT * 3);
+    const targetColors    = new Float32Array(COUNT * 3);
+
+    gsap.to(particles.rotation, { x: 0, y: 0, z: 0, duration: 0.3 });
+
+    for (let i = 0; i < COUNT; i++) {
+      if (i < textPoints.length) {
+        targetPositions[i * 3]     = textPoints[i].x;
+        targetPositions[i * 3 + 1] = textPoints[i].y;
+        targetPositions[i * 3 + 2] = 0;
+        const hue = (cfg.hueBase + (i / textPoints.length) * 0.08) % 1;
+        const c   = new THREE.Color().setHSL(hue, 1.0, 0.55 + Math.random() * 0.05);
+        targetColors[i * 3] = c.r; targetColors[i * 3 + 1] = c.g; targetColors[i * 3 + 2] = c.b;
+      } else {
+        const angle  = Math.random() * Math.PI * 2;
+        const radius = Math.random() * 20 + 10;
+        targetPositions[i * 3]     = Math.cos(angle) * radius;
+        targetPositions[i * 3 + 1] = Math.sin(angle) * radius;
+        targetPositions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+        const c = new THREE.Color().setHSL(cfg.hueBase, 0.6, 0.12);
+        targetColors[i * 3] = c.r; targetColors[i * 3 + 1] = c.g; targetColors[i * 3 + 2] = c.b;
+      }
+    }
+
+    for (let i = 0; i < posArr.length; i += 3) {
+      gsap.to(particles.geometry.attributes.position.array, {
+        [i]: targetPositions[i], [i+1]: targetPositions[i+1], [i+2]: targetPositions[i+2],
+        duration: 1.2, ease: "power2.inOut",
+        onUpdate: () => { particles.geometry.attributes.position.needsUpdate = true; },
+      });
+    }
+    for (let i = 0; i < colArr.length; i += 3) {
+      gsap.to(particles.geometry.attributes.color.array, {
+        [i]: targetColors[i], [i+1]: targetColors[i+1], [i+2]: targetColors[i+2],
+        duration: 1.2, ease: "power2.inOut",
+        onUpdate: () => { particles.geometry.attributes.color.needsUpdate = true; },
+      });
+    }
+  }, [createTextPoints]);
+
   // ── morphToText ───────────────────────────────────────────────────────────
 
   const morphToText = useCallback((text: string) => {
@@ -367,5 +418,5 @@ export function useParticles(
     };
   }, [containerRef]);
 
-  return { morphToText };
+  return { morphToText, morphToTextStatic, morphToCircle };
 }

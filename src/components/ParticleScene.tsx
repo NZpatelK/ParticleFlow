@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, useState, useEffect, KeyboardEvent } from "react";
+import { useRef, useState, useEffect, useCallback, KeyboardEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { useParticles } from "./useParticles";
+import { encodeAnimationData, decodeAnimationData } from "@/lib/share";
 
 // ── Colour palette ──────────────────────────────────────────────────────────
 const COLORS = [
@@ -96,16 +98,25 @@ function hexToHsl(hex: string): { h: number; s: number; l: number } {
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
-export default function ParticleScene({ inputVisible = true }: { inputVisible?: boolean }) {
+export default function ParticleScene({ inputVisible = true, onSlideshowComplete }: { inputVisible?: boolean; onSlideshowComplete?: () => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const [selected, setSelected] = useState(COLORS[10]); // Violet default
   const [pickerOpen, setPickerOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareError, setShareError] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [currentWord, setCurrentWord] = useState<string | null>(null);
+  const [wordIndex, setWordIndex] = useState(0);
+  const [totalWords, setTotalWords] = useState(0);
+  const slideshowRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchParams = useSearchParams();
 
   const hsl = hexToHsl(selected.hex);
-  const { morphToText } = useParticles(containerRef, {
+  const { morphToText, morphToTextStatic, morphToCircle } = useParticles(containerRef, {
     hueBase: hsl.h,
     hueRange: 0.05,
     saturation: hsl.s,
@@ -122,13 +133,84 @@ export default function ParticleScene({ inputVisible = true }: { inputVisible?: 
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Hydrate from shared URL on mount
   useEffect(() => {
-    morphToText("Hello, World!");
+    const encoded = searchParams.get("data");
+    if (encoded) {
+      const data = decodeAnimationData(encoded);
+      if (data) {
+        setInputValue(data.text);
+        const matchedColor = COLORS.find((c) => c.hex === data.colorHex);
+        if (matchedColor) setSelected(matchedColor);
+        const timer = setTimeout(() => startSlideshow(data.text, 1), 300);
+        return () => clearTimeout(timer);
+      } else {
+        setShareError(true);
+        setTimeout(() => setShareError(false), 3000);
+        morphToText("Hello, World!");
+      }
+    } else {
+      morphToText("Hello, World!");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [morphToText]);
+
+  const startSlideshow = useCallback((text: string, speedMultiplier: number) => {
+    // Clear any running slideshow
+    if (slideshowRef.current) clearTimeout(slideshowRef.current);
+
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return;
+
+    // Single word — use normal morphToText (with auto-return)
+    if (words.length === 1) {
+      setCurrentWord(null);
+      setWordIndex(0);
+      setTotalWords(0);
+      morphToText(words[0]);
+      return;
+    }
+
+    // Base interval between words at 1x speed (ms)
+    const BASE_INTERVAL = 2000;
+    const interval = BASE_INTERVAL / speedMultiplier;
+
+    setTotalWords(words.length);
+
+    const showWord = (idx: number) => {
+      if (idx >= words.length) {
+        // Done — return to sphere after a pause
+        setCurrentWord(null);
+        setWordIndex(0);
+        setTotalWords(0);
+        slideshowRef.current = setTimeout(() => {
+          morphToCircle();
+          onSlideshowComplete?.();
+        }, interval * 0.5);
+        return;
+      }
+      setCurrentWord(words[idx]);
+      setWordIndex(idx + 1);
+      morphToTextStatic(words[idx]);
+      slideshowRef.current = setTimeout(() => showWord(idx + 1), interval);
+    };
+
+    showWord(0);
+  }, [morphToText, morphToTextStatic, morphToCircle]);
+
+  const handleShare = async () => {
+    const text = inputValue.trim();
+    if (!text) return;
+    const encoded = encodeAnimationData({ text, colorHex: selected.hex });
+    const url = `${window.location.origin}/?data=${encoded}`;
+    await navigator.clipboard.writeText(url);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
+  };
 
   const handleSubmit = () => {
     const text = inputValue.trim();
-    if (text) morphToText(text);
+    if (text) startSlideshow(text, speed);
   };
 
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -139,6 +221,35 @@ export default function ParticleScene({ inputVisible = true }: { inputVisible?: 
     <>
       <div ref={containerRef} className="fixed inset-0 w-full h-full" id="container" />
 
+      {/* Current word display during slideshow */}
+      {currentWord && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <span className="text-white/20 text-xs font-mono tracking-widest uppercase">
+            {currentWord}
+          </span>
+        </div>
+      )}
+
+      <style>{`
+        input[type='range']::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+          box-shadow: 0 0 6px rgba(255,255,255,0.4);
+        }
+        input[type='range']::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: white;
+          cursor: pointer;
+          border: none;
+        }
+      `}</style>
+
       <div
         className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-xl
     transition-all duration-800 ease-[cubic-bezier(0.34,1.56,0.64,1)]
@@ -148,6 +259,12 @@ export default function ParticleScene({ inputVisible = true }: { inputVisible?: 
           }`}
         ref={pickerRef}
       >
+        {/* ── Share error toast ── */}
+        {shareError && (
+          <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-xs backdrop-blur-md">
+            Invalid share link
+          </div>
+        )}
 
         {/* ── Picker popover ── */}
         <div className={`absolute bottom-full mb-3 left-0 right-0 transition-all duration-300 ${pickerOpen
@@ -210,6 +327,30 @@ export default function ParticleScene({ inputVisible = true }: { inputVisible?: 
           </div>
         </div>
 
+        {/* ── Speed + word progress bar ── */}
+        <div className="flex items-center gap-3 mb-2 px-1">
+          <span className="text-white/30 text-[10px] font-mono shrink-0">Speed</span>
+          <input
+            type="range"
+            min={0.5}
+            max={3}
+            step={0.5}
+            value={speed}
+            onChange={(e) => setSpeed(parseFloat(e.target.value))}
+            className="flex-1 h-1 appearance-none rounded-full cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, ${selected.from} 0%, ${selected.to} ${((speed - 0.5) / 2.5) * 100}%, rgba(255,255,255,0.1) ${((speed - 0.5) / 2.5) * 100}%)`,
+            }}
+          />
+          <span className="text-white/50 text-[10px] font-mono w-8 text-right shrink-0">{speed}x</span>
+
+          {totalWords > 0 && (
+            <span className="text-white/40 text-[10px] font-mono shrink-0">
+              {wordIndex}/{totalWords}
+            </span>
+          )}
+        </div>
+
         {/* ── Input bar ── */}
         <div className="relative flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/8 backdrop-blur-xl border border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]">
           <div className="absolute inset-0 rounded-2xl bg-linear-to-b from-white/5 to-transparent pointer-events-none" />
@@ -240,16 +381,38 @@ export default function ParticleScene({ inputVisible = true }: { inputVisible?: 
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type something..."
-            maxLength={20}
+            maxLength={120}
             className="flex-1 bg-transparent border-none outline-none px-3 py-3.5 text-white text-sm tracking-wide placeholder:text-white/30 font-light min-w-0"
           />
 
           <span className="text-white/20 text-xs font-mono pr-2 tabular-nums shrink-0">
-            {inputValue.length}/20
+            {inputValue.length}/120
           </span>
 
           <button
-            onClick={handleSubmit}
+            onClick={handleShare}
+            disabled={!inputValue.trim()}
+            className="group relative flex items-center gap-2 px-4 py-3 text-white/70 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 hover:text-white hover:bg-white/10 active:scale-[0.98] shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Copy share link"
+          >
+            {shareCopied ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="hidden sm:inline">Copied!</span>
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="hidden sm:inline">Share</span>
+              </>
+            )}
+          </button>
+
+          <button
             className="group relative flex items-center gap-2 px-5 py-3 text-white rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] overflow-hidden shrink-0"
             style={{
               background: `linear-gradient(135deg, ${selected.from}, ${selected.to})`,
